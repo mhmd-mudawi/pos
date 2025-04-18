@@ -423,10 +423,12 @@ def purchases_records():
     SELECT 
         pur.id, 
         pur.date, 
+        p.id as product_id,
         p.name as product_name, 
         pur.quantity, 
         pur.unit_price, 
         pur.total_price, 
+        pur.supplier_id,
         s.name as supplier_name, 
         pur.notes
     FROM 
@@ -440,10 +442,14 @@ def purchases_records():
     ''')
     
     purchases = cursor.fetchall()
+    
+    # Get all suppliers for the edit modal dropdown
+    cursor.execute('SELECT id, name FROM suppliers')
+    suppliers = cursor.fetchall()
+    
     conn.close()
     
-    return render_template('purchases_records.html', purchases=purchases)
-
+    return render_template('purchases_records.html', purchases=purchases, suppliers=suppliers)
 @app.route('/api/purchases', methods=['POST'])
 def add_purchase():
     """Add a new purchase"""
@@ -1053,5 +1059,100 @@ def update_sale(sale_id):
     except Exception as e:
         return jsonify({'success': False, 'message': f'Error updating sale record: {str(e)}'})
 
+@app.route('/api/purchases/<int:purchase_id>', methods=['PUT'])
+def update_purchase(purchase_id):
+    """Update an existing purchase record"""
+    try:
+        data = request.json
+        date = data.get('date')
+        quantity = int(data.get('quantity', 0))
+        unit_price = float(data.get('unit_price', 0))
+        supplier_id = data.get('supplier_id')
+        if supplier_id:
+            supplier_id = int(supplier_id)
+        notes = data.get('notes', '')
+        
+        conn = sqlite3.connect(DB_PATH)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        # Get current purchase data
+        cursor.execute('''
+        SELECT 
+            product_id,
+            quantity as original_quantity,
+            unit_price as original_unit_price,
+            total_price as original_total_price
+        FROM 
+            purchases
+        WHERE 
+            id = ?
+        ''', (purchase_id,))
+        
+        purchase_data = cursor.fetchone()
+        
+        if not purchase_data:
+            conn.close()
+            return jsonify({'success': False, 'message': 'Purchase record not found'})
+        
+        product_id = purchase_data['product_id']
+        original_quantity = purchase_data['original_quantity']
+        original_unit_price = purchase_data['original_unit_price']
+        original_total_price = purchase_data['original_total_price']
+        
+        # Calculate new total price
+        total_price = quantity * unit_price
+        
+        # Update product inventory based on change in quantity
+        cursor.execute('''
+        SELECT quantity, total_purchase_price, unit_selling_price
+        FROM products
+        WHERE id = ?
+        ''', (product_id,))
+        
+        product_data = cursor.fetchone()
+        
+        if product_data:
+            current_quantity = product_data['quantity']
+            current_total_purchase = product_data['total_purchase_price']
+            current_unit_selling = product_data['unit_selling_price']
+            
+            # Adjust for quantity and purchase price changes
+            quantity_change = quantity - original_quantity
+            
+            # Update current quantity
+            new_quantity = current_quantity + quantity_change
+            
+            # Remove original purchase price from the total
+            adjusted_total_purchase = current_total_purchase - original_total_price
+            
+            # Add new purchase price to the total
+            new_total_purchase = adjusted_total_purchase + total_price
+            
+            # Calculate new unit purchase price and profit
+            new_unit_purchase = new_total_purchase / new_quantity if new_quantity > 0 else 0
+            new_unit_profit = current_unit_selling - new_unit_purchase
+            
+            # Update product data
+            cursor.execute('''
+            UPDATE products 
+            SET quantity = ?, total_purchase_price = ?, unit_purchase_price = ?, unit_profit = ?
+            WHERE id = ?
+            ''', (new_quantity, new_total_purchase, new_unit_purchase, new_unit_profit, product_id))
+        
+        # Update the purchase record
+        cursor.execute('''
+        UPDATE purchases 
+        SET date = ?, quantity = ?, unit_price = ?, total_price = ?, supplier_id = ?, notes = ?
+        WHERE id = ?
+        ''', (date, quantity, unit_price, total_price, supplier_id, notes, purchase_id))
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({'success': True, 'message': 'Purchase record updated successfully!'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Error updating purchase record: {str(e)}'})
+    
 if __name__ == '__main__':
     app.run(debug=True)
