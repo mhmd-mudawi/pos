@@ -1,0 +1,550 @@
+{% extends "base.html" %}
+
+{% block title %}التقارير{% endblock %}
+
+{% block header %}التقارير{% endblock %}
+
+{% block content %}
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <!-- Report Card 1: Sales Summary -->
+    <div class="bg-white rounded-lg shadow">
+        <div class="p-6 border-b">
+            <h2 class="text-lg font-semibold">ملخص المبيعات</h2>
+        </div>
+        <div class="p-6">
+            <div class="flex justify-between mb-4">
+                <span class="text-gray-600">الفترة:</span>
+                <select id="sales-period" class="rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                    <option value="today">اليوم</option>
+                    <option value="week">الأسبوع الحالي</option>
+                    <option value="month" selected>الشهر الحالي</option>
+                    <option value="year">السنة الحالية</option>
+                    <option value="custom">مخصص</option>
+                </select>
+            </div>
+            <div id="sales-date-range" class="mb-4 hidden">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-600 mb-1">من:</label>
+                        <input type="date" id="sales-start-date" class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-600 mb-1">إلى:</label>
+                        <input type="date" id="sales-end-date" class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                    </div>
+                </div>
+                <button id="apply-sales-date-range" class="mt-2 w-full px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50">
+                    تطبيق
+                </button>
+            </div>
+            <div class="space-y-4">
+                <div class="flex justify-between">
+                    <span class="text-gray-600">إجمالي المبيعات:</span>
+                    <span class="font-semibold" id="total-sales-amount">...</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-600">عدد المبيعات:</span>
+                    <span class="font-semibold" id="total-sales-count">...</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-600">متوسط قيمة البيع:</span>
+                    <span class="font-semibold" id="average-sale-amount">...</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-600">إجمالي الربح:</span>
+                    <span class="font-semibold text-green-600" id="total-sales-profit">...</span>
+                </div>
+            </div>
+            <div class="mt-4">
+                <a href="{{ url_for('sales_records') }}" class="text-indigo-600 hover:text-indigo-900">عرض كل المبيعات &raquo;</a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Report Card 2: Inventory Status -->
+    <div class="bg-white rounded-lg shadow">
+        <div class="p-6 border-b">
+            <h2 class="text-lg font-semibold">حالة المخزون</h2>
+        </div>
+        <div class="p-6">
+            <div class="space-y-4">
+                <div class="flex justify-between">
+                    <span class="text-gray-600">إجمالي المنتجات:</span>
+                    <span class="font-semibold" id="total-products">...</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-600">المنتجات منخفضة المخزون:</span>
+                    <span class="font-semibold text-yellow-600" id="low-stock-products">...</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-600">المنتجات المنتهية:</span>
+                    <span class="font-semibold text-red-600" id="out-of-stock-products">...</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-600">قيمة المخزون الحالية:</span>
+                    <span class="font-semibold" id="inventory-value">...</span>
+                </div>
+                <div class="flex justify-between">
+                    <span class="text-gray-600">الربح المتوقع:</span>
+                    <span class="font-semibold text-green-600" id="expected-profit">...</span>
+                </div>
+            </div>
+            <div class="mt-4">
+                <a href="{{ url_for('inventory') }}" class="text-indigo-600 hover:text-indigo-900">عرض المخزون &raquo;</a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Report Card 3: Top Products -->
+    <div class="bg-white rounded-lg shadow">
+        <div class="p-6 border-b">
+            <h2 class="text-lg font-semibold">أفضل المنتجات مبيعاً</h2>
+        </div>
+        <div class="p-6">
+            <div class="mb-4">
+                <select id="top-products-period" class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                    <option value="month" selected>الشهر الحالي</option>
+                    <option value="quarter">الربع الحالي</option>
+                    <option value="year">السنة الحالية</option>
+                    <option value="all">كل الوقت</option>
+                </select>
+            </div>
+            <div class="space-y-2" id="top-products-list">
+                <div class="text-center py-4 text-gray-500">
+                    <i class="fas fa-spinner fa-spin mr-2"></i> جاري التحميل...
+                </div>
+            </div>
+            <div class="mt-4">
+                <a href="{{ url_for('sales_records') }}" class="text-indigo-600 hover:text-indigo-900">عرض تفاصيل أكثر &raquo;</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Sales Report Chart -->
+<div class="mt-6 bg-white rounded-lg shadow">
+    <div class="p-6 border-b">
+        <h2 class="text-lg font-semibold">تقرير المبيعات</h2>
+    </div>
+    <div class="p-6">
+        <div class="flex justify-between mb-4">
+            <div>
+                <select id="sales-chart-type" class="rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                    <option value="daily">يومي</option>
+                    <option value="weekly">أسبوعي</option>
+                    <option value="monthly" selected>شهري</option>
+                </select>
+            </div>
+            <div>
+                <select id="sales-chart-data" class="rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                    <option value="amount" selected>قيمة المبيعات</option>
+                    <option value="profit">الأرباح</option>
+                    <option value="count">عدد المبيعات</option>
+                </select>
+            </div>
+        </div>
+        <div class="h-80">
+            <canvas id="sales-chart"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- Product Category Distribution -->
+<div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div class="bg-white rounded-lg shadow">
+        <div class="p-6 border-b">
+            <h2 class="text-lg font-semibold">توزيع المبيعات حسب المنتجات</h2>
+        </div>
+        <div class="p-6">
+            <div class="h-60">
+                <canvas id="product-distribution-chart"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <div class="bg-white rounded-lg shadow">
+        <div class="p-6 border-b">
+            <h2 class="text-lg font-semibold">أرباح المنتجات</h2>
+        </div>
+        <div class="p-6">
+            <div class="h-60">
+                <canvas id="product-profit-chart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Variables
+        const salesPeriodSelect = document.getElementById('sales-period');
+        const salesDateRange = document.getElementById('sales-date-range');
+        const salesStartDate = document.getElementById('sales-start-date');
+        const salesEndDate = document.getElementById('sales-end-date');
+        const applySalesDateRange = document.getElementById('apply-sales-date-range');
+        const topProductsPeriodSelect = document.getElementById('top-products-period');
+        const salesChartTypeSelect = document.getElementById('sales-chart-type');
+        const salesChartDataSelect = document.getElementById('sales-chart-data');
+        
+        // Set default dates
+        const today = new Date();
+        const oneMonthAgo = new Date();
+        oneMonthAgo.setMonth(today.getMonth() - 1);
+        
+        salesStartDate.valueAsDate = oneMonthAgo;
+        salesEndDate.valueAsDate = today;
+        
+        // Initialize
+        loadSalesSummary('month');
+        loadInventoryStatus();
+        loadTopProducts('month');
+        loadSalesChart('monthly', 'amount');
+        loadProductDistributionChart();
+        loadProductProfitChart();
+        
+        // Event Listeners
+        salesPeriodSelect.addEventListener('change', function() {
+            if (this.value === 'custom') {
+                salesDateRange.classList.remove('hidden');
+            } else {
+                salesDateRange.classList.add('hidden');
+                loadSalesSummary(this.value);
+            }
+        });
+        
+        applySalesDateRange.addEventListener('click', function() {
+            const startDate = salesStartDate.value;
+            const endDate = salesEndDate.value;
+            
+            if (startDate && endDate) {
+                loadSalesSummary('custom', startDate, endDate);
+            } else {
+                showNotification('الرجاء تحديد تاريخ البداية والنهاية', 'error');
+            }
+        });
+        
+        topProductsPeriodSelect.addEventListener('change', function() {
+            loadTopProducts(this.value);
+        });
+        
+        salesChartTypeSelect.addEventListener('change', function() {
+            loadSalesChart(this.value, salesChartDataSelect.value);
+        });
+        
+        salesChartDataSelect.addEventListener('change', function() {
+            loadSalesChart(salesChartTypeSelect.value, this.value);
+        });
+        
+        // Functions
+        function loadSalesSummary(period, startDate, endDate) {
+            // Show loading state
+            document.getElementById('total-sales-amount').textContent = '...';
+            document.getElementById('total-sales-count').textContent = '...';
+            document.getElementById('average-sale-amount').textContent = '...';
+            document.getElementById('total-sales-profit').textContent = '...';
+            
+            // Prepare URL
+            let url = `/api/reports/sales-summary?period=${period}`;
+            if (period === 'custom' && startDate && endDate) {
+                url += `&start_date=${startDate}&end_date=${endDate}`;
+            }
+            
+            // Fetch data
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        document.getElementById('total-sales-amount').textContent = data.total_sales.toFixed(2) + ' $';
+                        document.getElementById('total-sales-count').textContent = data.total_count;
+                        document.getElementById('average-sale-amount').textContent = data.average_sale.toFixed(2) + ' $';
+                        document.getElementById('total-sales-profit').textContent = data.total_profit.toFixed(2) + ' $';
+                    } else {
+                        showNotification(data.message, 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching sales summary:', error);
+                    showNotification('حدث خطأ أثناء جلب بيانات المبيعات.', 'error');
+                });
+        }
+        
+        function loadInventoryStatus() {
+            // Show loading state
+            document.getElementById('total-products').textContent = '...';
+            document.getElementById('low-stock-products').textContent = '...';
+            document.getElementById('out-of-stock-products').textContent = '...';
+            document.getElementById('inventory-value').textContent = '...';
+            document.getElementById('expected-profit').textContent = '...';
+            
+            // Fetch data
+            fetch('/api/reports/inventory-status')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        document.getElementById('total-products').textContent = data.total_products;
+                        document.getElementById('low-stock-products').textContent = data.low_stock_products;
+                        document.getElementById('out-of-stock-products').textContent = data.out_of_stock_products;
+                        document.getElementById('inventory-value').textContent = data.inventory_value.toFixed(2) + ' $';
+                        document.getElementById('expected-profit').textContent = data.expected_profit.toFixed(2) + ' $';
+                    } else {
+                        showNotification(data.message, 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching inventory status:', error);
+                    showNotification('حدث خطأ أثناء جلب بيانات المخزون.', 'error');
+                });
+        }
+        
+        function loadTopProducts(period) {
+            const topProductsList = document.getElementById('top-products-list');
+            topProductsList.innerHTML = '<div class="text-center py-4 text-gray-500"><i class="fas fa-spinner fa-spin mr-2"></i> جاري التحميل...</div>';
+            
+            // Fetch data
+            fetch(`/api/reports/top-products?period=${period}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        topProductsList.innerHTML = '';
+                        
+                        if (data.products.length === 0) {
+                            topProductsList.innerHTML = '<div class="text-center py-4 text-gray-500">لا توجد بيانات متاحة</div>';
+                            return;
+                        }
+                        
+                        data.products.forEach((product, index) => {
+                            const productItem = document.createElement('div');
+                            productItem.className = 'flex justify-between items-center p-2 rounded';
+                            
+                            // Alternate background colors
+                            if (index % 2 === 0) {
+                                productItem.classList.add('bg-gray-50');
+                            }
+                            
+                            productItem.innerHTML = `
+                                <div class="flex items-center">
+                                    <span class="text-indigo-600 font-bold mr-2">#${index + 1}</span>
+                                    <span class="font-medium">${product.name}</span>
+                                </div>
+                                <div class="text-gray-500">${product.quantity} وحدة (${product.sales_amount.toFixed(2)} $)</div>
+                            `;
+                            
+                            topProductsList.appendChild(productItem);
+                        });
+                    } else {
+                        showNotification(data.message, 'error');
+                        topProductsList.innerHTML = '<div class="text-center py-4 text-gray-500">لا توجد بيانات متاحة</div>';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching top products:', error);
+                    showNotification('حدث خطأ أثناء جلب بيانات أفضل المنتجات.', 'error');
+                    topProductsList.innerHTML = '<div class="text-center py-4 text-gray-500">حدث خطأ أثناء جلب البيانات</div>';
+                });
+        }
+        
+        let salesChart = null;
+        function loadSalesChart(type, dataType) {
+            // Fetch data
+            fetch(`/api/reports/sales-chart?type=${type}&data_type=${dataType}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const ctx = document.getElementById('sales-chart').getContext('2d');
+                        
+                        // Destroy previous chart if exists
+                        if (salesChart) {
+                            salesChart.destroy();
+                        }
+                        
+                        // Create new chart
+                        salesChart = new Chart(ctx, {
+                            type: 'bar',
+                            data: {
+                                labels: data.labels,
+                                datasets: [{
+                                    label: getChartLabel(dataType),
+                                    data: data.values,
+                                    backgroundColor: 'rgba(79, 70, 229, 0.2)',
+                                    borderColor: 'rgba(79, 70, 229, 1)',
+                                    borderWidth: 1
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                scales: {
+                                    y: {
+                                        beginAtZero: true
+                                    }
+                                },
+                                plugins: {
+                                    legend: {
+                                        position: 'top',
+                                    },
+                                    tooltip: {
+                                        callbacks: {
+                                            label: function(context) {
+                                                let label = context.dataset.label || '';
+                                                if (label) {
+                                                    label += ': ';
+                                                }
+                                                if (dataType === 'count') {
+                                                    label += context.parsed.y;
+                                                } else {
+                                                    label += context.parsed.y.toFixed(2) + ' $';
+                                                }
+                                                return label;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        });
+                    } else {
+                        showNotification(data.message, 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching sales chart data:', error);
+                    showNotification('حدث خطأ أثناء جلب بيانات الرسم البياني.', 'error');
+                });
+        }
+        
+        let productDistributionChart = null;
+        function loadProductDistributionChart() {
+            // Fetch data
+            fetch('/api/reports/product-distribution')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const ctx = document.getElementById('product-distribution-chart').getContext('2d');
+                        
+                        // Create chart
+                        productDistributionChart = new Chart(ctx, {
+                            type: 'pie',
+                            data: {
+                                labels: data.labels,
+                                datasets: [{
+                                    data: data.values,
+                                    backgroundColor: [
+                                        'rgba(255, 99, 132, 0.2)',
+                                        'rgba(54, 162, 235, 0.2)',
+                                        'rgba(255, 206, 86, 0.2)',
+                                        'rgba(75, 192, 192, 0.2)',
+                                        'rgba(153, 102, 255, 0.2)',
+                                        'rgba(255, 159, 64, 0.2)',
+                                        'rgba(199, 199, 199, 0.2)'
+                                    ],
+                                    borderColor: [
+                                        'rgba(255, 99, 132, 1)',
+                                        'rgba(54, 162, 235, 1)',
+                                        'rgba(255, 206, 86, 1)',
+                                        'rgba(75, 192, 192, 1)',
+                                        'rgba(153, 102, 255, 1)',
+                                        'rgba(255, 159, 64, 1)',
+                                        'rgba(199, 199, 199, 1)'
+                                    ],
+                                    borderWidth: 1
+                                }]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: {
+                                    legend: {
+                                        position: 'right',
+                                    },
+                                    tooltip: {
+                                        callbacks: {
+                                            label: function(context) {
+                                                const label = context.label || '';
+                                                const value = context.raw;
+                                                const percentage = ((value / data.total) * 100).toFixed(1);
+                                                return `${label}: ${value} (${percentage}%)`;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        });
+                    } else {
+                        showNotification(data.message, 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching product distribution data:', error);
+                    showNotification('حدث خطأ أثناء جلب بيانات توزيع المنتجات.', 'error');
+                });
+        }
+        
+        let productProfitChart = null;
+        function loadProductProfitChart() {
+            // Fetch data
+            fetch('/api/reports/product-profit')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const ctx = document.getElementById('product-profit-chart').getContext('2d');
+                        
+                        // Create chart
+                        productProfitChart = new Chart(ctx, {
+                            type: 'bar',
+                            data: {
+                                labels: data.labels,
+                                datasets: [{
+                                    label: 'الربح',
+                                    data: data.values,
+                                    backgroundColor: 'rgba(16, 185, 129, 0.2)',
+                                    borderColor: 'rgba(16, 185, 129, 1)',
+                                    borderWidth: 1
+                                }]
+                            },
+                            options: {
+                                indexAxis: 'y',
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                plugins: {
+                                    legend: {
+                                        display: false
+                                    },
+                                    tooltip: {
+                                        callbacks: {
+                                            label: function(context) {
+                                                let label = 'الربح: ';
+                                                label += context.parsed.x.toFixed(2) + ' $';
+                                                return label;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        });
+                    } else {
+                        showNotification(data.message, 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching product profit data:', error);
+                    showNotification('حدث خطأ أثناء جلب بيانات أرباح المنتجات.', 'error');
+                });
+        }
+        
+        function getChartLabel(dataType) {
+            switch (dataType) {
+                case 'amount':
+                    return 'قيمة المبيعات';
+                case 'profit':
+                    return 'الأرباح';
+                case 'count':
+                    return 'عدد المبيعات';
+                default:
+                    return 'القيمة';
+            }
+        }
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,532 @@
+{% extends "base.html" %}
+
+{% block title %}الموردون{% endblock %}
+
+{% block header %}إدارة الموردين{% endblock %}
+
+{% block content %}
+<div class="bg-white rounded-lg shadow">
+    <!-- Header controls -->
+    <div class="p-6 border-b flex flex-col md:flex-row md:items-center md:justify-between">
+        <h2 class="text-lg font-semibold mb-4 md:mb-0">قائمة الموردين</h2>
+        <div class="flex flex-col md:flex-row space-y-2 md:space-y-0 md:space-x-2 md:space-x-reverse">
+            <div class="relative">
+                <input type="text" id="search-input" placeholder="بحث عن مورد..." class="w-full md:w-64 pr-10 pl-4 py-2 rounded-lg border focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500">
+                <div class="absolute inset-y-0 right-0 flex items-center pr-3">
+                    <i class="fas fa-search text-gray-400"></i>
+                </div>
+            </div>
+            
+            <button id="add-supplier-btn" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50">
+                <i class="fas fa-plus mr-2"></i>إضافة مورد جديد
+            </button>
+        </div>
+    </div>
+    
+    <!-- Suppliers table -->
+    <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200" id="suppliers-table">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        المعرف
+                    </th>
+                    <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        الاسم
+                    </th>
+                    <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        رقم الهاتف
+                    </th>
+                    <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        البريد الإلكتروني
+                    </th>
+                    <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        العنوان
+                    </th>
+                    <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        ملاحظات
+                    </th>
+                    <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        الإجراءات
+                    </th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                {% for supplier in suppliers %}
+                <tr class="supplier-row">
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {{ supplier.id }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        {{ supplier.name }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {{ supplier.phone or "—" }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {{ supplier.email or "—" }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {{ supplier.address or "—" }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {% if supplier.notes %}
+                        <button class="text-indigo-600 hover:text-indigo-900 tooltip-trigger" data-tooltip="{{ supplier.notes }}">
+                            <i class="fas fa-info-circle"></i>
+                        </button>
+                        {% else %}
+                        —
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <div class="flex space-x-2 space-x-reverse">
+                            <button class="edit-supplier-btn text-indigo-600 hover:text-indigo-900" data-id="{{ supplier.id }}">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="view-purchases-btn text-blue-600 hover:text-blue-900" data-id="{{ supplier.id }}" data-name="{{ supplier.name }}">
+                                <i class="fas fa-shopping-cart"></i>
+                            </button>
+                            <button class="delete-supplier-btn text-red-600 hover:text-red-900" data-id="{{ supplier.id }}">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Supplier Modal -->
+<div id="supplier-modal" class="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center hidden z-50">
+    <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+        <div class="flex justify-between items-center px-6 py-4 border-b">
+            <h3 class="text-lg font-semibold" id="modal-title">إضافة مورد جديد</h3>
+            <button class="close-modal text-gray-500 hover:text-gray-800">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="px-6 py-4">
+            <form id="supplier-form">
+                <input type="hidden" id="supplier-id">
+                <div class="space-y-4">
+                    <div>
+                        <label for="supplier-name" class="block text-sm font-medium text-gray-700 mb-1">اسم المورد*</label>
+                        <input type="text" id="supplier-name" required class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                    </div>
+                    <div>
+                        <label for="supplier-phone" class="block text-sm font-medium text-gray-700 mb-1">رقم الهاتف</label>
+                        <input type="tel" id="supplier-phone" class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                    </div>
+                    <div>
+                        <label for="supplier-email" class="block text-sm font-medium text-gray-700 mb-1">البريد الإلكتروني</label>
+                        <input type="email" id="supplier-email" class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                    </div>
+                    <div>
+                        <label for="supplier-address" class="block text-sm font-medium text-gray-700 mb-1">العنوان</label>
+                        <textarea id="supplier-address" rows="2" class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"></textarea>
+                    </div>
+                    <div>
+                        <label for="supplier-notes" class="block text-sm font-medium text-gray-700 mb-1">ملاحظات</label>
+                        <textarea id="supplier-notes" rows="3" class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"></textarea>
+                    </div>
+                </div>
+            </form>
+        </div>
+        <div class="px-6 py-4 border-t bg-gray-50 flex justify-end">
+            <button class="close-modal px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-opacity-50 mr-2">إلغاء</button>
+            <button id="save-supplier-btn" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50">حفظ</button>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div id="delete-modal" class="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center hidden z-50">
+    <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+        <div class="px-6 py-4 border-b">
+            <h3 class="text-lg font-semibold text-gray-900">تأكيد الحذف</h3>
+        </div>
+        <div class="px-6 py-4">
+            <p class="text-gray-700">هل أنت متأكد من رغبتك في حذف هذا المورد؟ هذا الإجراء لا يمكن التراجع عنه.</p>
+        </div>
+        <div class="px-6 py-4 border-t bg-gray-50 flex justify-end">
+            <button class="close-modal px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-opacity-50 mr-2">إلغاء</button>
+            <button id="confirm-delete-btn" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50">حذف</button>
+        </div>
+    </div>
+</div>
+
+<!-- Supplier Purchases Modal -->
+<div id="supplier-purchases-modal" class="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center hidden z-50">
+    <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4">
+        <div class="flex justify-between items-center px-6 py-4 border-b">
+            <h3 class="text-lg font-semibold" id="supplier-purchases-title">مشتريات من المورد</h3>
+            <button class="close-modal text-gray-500 hover:text-gray-800">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="px-6 py-4 max-h-[70vh] overflow-y-auto">
+            <div id="supplier-purchases-loading" class="py-8 text-center">
+                <i class="fas fa-spinner fa-spin text-indigo-600 text-2xl"></i>
+                <p class="mt-2 text-gray-600">جاري تحميل البيانات...</p>
+            </div>
+            <div id="supplier-purchases-content" class="hidden">
+                <div class="mb-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="bg-gray-50 p-4 rounded">
+                        <h4 class="text-sm text-gray-500">إجمالي المشتريات</h4>
+                        <p class="text-xl font-semibold" id="supplier-total-purchases">0.00 $</p>
+                    </div>
+                    <div class="bg-gray-50 p-4 rounded">
+                        <h4 class="text-sm text-gray-500">عدد المشتريات</h4>
+                        <p class="text-xl font-semibold" id="supplier-purchases-count">0</p>
+                    </div>
+                    <div class="bg-gray-50 p-4 rounded">
+                        <h4 class="text-sm text-gray-500">متوسط قيمة الطلب</h4>
+                        <p class="text-xl font-semibold" id="supplier-average-purchase">0.00 $</p>
+                    </div>
+                </div>
+                <div class="overflow-x-auto border rounded">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">التاريخ</th>
+                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">المنتج</th>
+                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">الكمية</th>
+                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">سعر الوحدة</th>
+                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">الإجمالي</th>
+                            </tr>
+                        </thead>
+                        <tbody id="supplier-purchases-table" class="bg-white divide-y divide-gray-200">
+                            <!-- Data will be filled by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+                <div id="supplier-no-purchases" class="hidden py-8 text-center">
+                    <p class="text-gray-500">لا توجد مشتريات من هذا المورد.</p>
+                </div>
+            </div>
+        </div>
+        <div class="px-6 py-4 border-t bg-gray-50 flex justify-end">
+            <button class="close-modal px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-opacity-50">إغلاق</button>
+        </div>
+    </div>
+</div>
+
+<!-- Tooltip -->
+<div id="tooltip" class="hidden fixed bg-gray-900 text-white p-2 rounded shadow-lg max-w-xs z-50">
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Variables
+        const searchInput = document.getElementById('search-input');
+        const suppliersTable = document.getElementById('suppliers-table');
+        const tooltipTriggers = document.querySelectorAll('.tooltip-trigger');
+        const tooltip = document.getElementById('tooltip');
+        
+        // Supplier modal elements
+        const supplierModal = document.getElementById('supplier-modal');
+        const supplierForm = document.getElementById('supplier-form');
+        const modalTitle = document.getElementById('modal-title');
+        const supplierId = document.getElementById('supplier-id');
+        const supplierName = document.getElementById('supplier-name');
+        const supplierPhone = document.getElementById('supplier-phone');
+        const supplierEmail = document.getElementById('supplier-email');
+        const supplierAddress = document.getElementById('supplier-address');
+        const supplierNotes = document.getElementById('supplier-notes');
+        const saveSupplierBtn = document.getElementById('save-supplier-btn');
+        
+        // Delete modal elements
+        const deleteModal = document.getElementById('delete-modal');
+        const confirmDeleteBtn = document.getElementById('confirm-delete-btn');
+        
+        // Purchases modal elements
+        const supplierPurchasesModal = document.getElementById('supplier-purchases-modal');
+        const supplierPurchasesTitle = document.getElementById('supplier-purchases-title');
+        const supplierPurchasesLoading = document.getElementById('supplier-purchases-loading');
+        const supplierPurchasesContent = document.getElementById('supplier-purchases-content');
+        const supplierNoPurchases = document.getElementById('supplier-no-purchases');
+        
+        // Buttons
+        const addSupplierBtn = document.getElementById('add-supplier-btn');
+        const editSupplierBtns = document.querySelectorAll('.edit-supplier-btn');
+        const viewPurchasesBtns = document.querySelectorAll('.view-purchases-btn');
+        const deleteSupplierBtns = document.querySelectorAll('.delete-supplier-btn');
+        const closeModalBtns = document.querySelectorAll('.close-modal');
+        
+        let currentSupplierId = null;
+        
+        // Event Listeners
+        
+        // Search functionality
+        searchInput.addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase();
+            const rows = suppliersTable.querySelectorAll('tbody tr');
+            
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                if (text.includes(searchTerm)) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        });
+        
+        // Add Supplier Button
+        addSupplierBtn.addEventListener('click', function() {
+            openAddSupplierModal();
+        });
+        
+        // Edit Supplier Buttons
+        editSupplierBtns.forEach(button => {
+            button.addEventListener('click', function() {
+                const supplierId = this.getAttribute('data-id');
+                openEditSupplierModal(supplierId);
+            });
+        });
+        
+        // View Purchases Buttons
+        viewPurchasesBtns.forEach(button => {
+            button.addEventListener('click', function() {
+                const supplierId = this.getAttribute('data-id');
+                const supplierName = this.getAttribute('data-name');
+                openSupplierPurchasesModal(supplierId, supplierName);
+            });
+        });
+        
+        // Delete Supplier Buttons
+        deleteSupplierBtns.forEach(button => {
+            button.addEventListener('click', function() {
+                const supplierId = this.getAttribute('data-id');
+                openDeleteSupplierModal(supplierId);
+            });
+        });
+        
+        // Close Modal Buttons
+        closeModalBtns.forEach(button => {
+            button.addEventListener('click', function() {
+                closeAllModals();
+            });
+        });
+        
+        // Save Supplier Button
+        saveSupplierBtn.addEventListener('click', function() {
+            if (supplierForm.checkValidity()) {
+                saveSupplier();
+            } else {
+                supplierForm.reportValidity();
+            }
+        });
+        
+        // Confirm Delete Button
+        confirmDeleteBtn.addEventListener('click', function() {
+            deleteSupplier();
+        });
+        
+        // Tooltip functionality
+        tooltipTriggers.forEach(trigger => {
+            trigger.addEventListener('mouseenter', function(e) {
+                const tooltipText = this.getAttribute('data-tooltip');
+                tooltip.textContent = tooltipText;
+                tooltip.classList.remove('hidden');
+                
+                // Position tooltip near the mouse
+                updateTooltipPosition(e);
+            });
+            
+            trigger.addEventListener('mouseleave', function() {
+                tooltip.classList.add('hidden');
+            });
+            
+            trigger.addEventListener('mousemove', function(e) {
+                updateTooltipPosition(e);
+            });
+        });
+        
+        // Functions
+        
+        function updateTooltipPosition(e) {
+            const x = e.clientX + 10;
+            const y = e.clientY + 10;
+            
+            tooltip.style.left = `${x}px`;
+            tooltip.style.top = `${y}px`;
+        }
+        
+        function openAddSupplierModal() {
+            currentSupplierId = null;
+            modalTitle.textContent = 'إضافة مورد جديد';
+            supplierForm.reset();
+            supplierId.value = '';
+            supplierModal.classList.remove('hidden');
+            supplierName.focus();
+        }
+        
+        function openEditSupplierModal(id) {
+            currentSupplierId = id;
+            modalTitle.textContent = 'تعديل بيانات المورد';
+            
+            // Fetch supplier data
+            fetch(`/api/suppliers/${id}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const supplier = data.supplier;
+                        
+                        supplierId.value = supplier.id;
+                        supplierName.value = supplier.name;
+                        supplierPhone.value = supplier.phone || '';
+                        supplierEmail.value = supplier.email || '';
+                        supplierAddress.value = supplier.address || '';
+                        supplierNotes.value = supplier.notes || '';
+                        
+                        supplierModal.classList.remove('hidden');
+                        supplierName.focus();
+                    } else {
+                        showNotification(data.message, 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching supplier data:', error);
+                    showNotification('حدث خطأ أثناء جلب بيانات المورد.', 'error');
+                });
+        }
+        
+        function openSupplierPurchasesModal(id, name) {
+            supplierPurchasesTitle.textContent = `مشتريات من المورد: ${name}`;
+            supplierPurchasesLoading.classList.remove('hidden');
+            supplierPurchasesContent.classList.add('hidden');
+            supplierNoPurchases.classList.add('hidden');
+            supplierPurchasesModal.classList.remove('hidden');
+            
+            // Fetch supplier purchases data
+            fetch(`/api/suppliers/${id}/purchases`)
+                .then(response => response.json())
+                .then(data => {
+                    supplierPurchasesLoading.classList.add('hidden');
+                    
+                    if (data.success) {
+                        if (data.purchases && data.purchases.length > 0) {
+                            // Display purchases data
+                            document.getElementById('supplier-total-purchases').textContent = data.total_purchases.toFixed(2) + ' $';
+                            document.getElementById('supplier-purchases-count').textContent = data.purchases.length;
+                            document.getElementById('supplier-average-purchase').textContent = (data.total_purchases / data.purchases.length).toFixed(2) + ' $';
+                            
+                            // Fill purchases table
+                            const purchasesTable = document.getElementById('supplier-purchases-table');
+                            purchasesTable.innerHTML = '';
+                            
+                            data.purchases.forEach(purchase => {
+                                const row = document.createElement('tr');
+                                row.innerHTML = `
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${purchase.date}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${purchase.product_name}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${purchase.quantity}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${purchase.unit_price.toFixed(2)} $</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${purchase.total_price.toFixed(2)} $</td>
+                                `;
+                                purchasesTable.appendChild(row);
+                            });
+                            
+                            supplierPurchasesContent.classList.remove('hidden');
+                        } else {
+                            supplierNoPurchases.classList.remove('hidden');
+                        }
+                    } else {
+                        showNotification(data.message, 'error');
+                        closeAllModals();
+                    }
+                })
+                .catch(error => {
+                    supplierPurchasesLoading.classList.add('hidden');
+                    console.error('Error fetching supplier purchases:', error);
+                    showNotification('حدث خطأ أثناء جلب بيانات مشتريات المورد.', 'error');
+                    closeAllModals();
+                });
+        }
+        
+        function openDeleteSupplierModal(id) {
+            currentSupplierId = id;
+            deleteModal.classList.remove('hidden');
+        }
+        
+        function closeAllModals() {
+            supplierModal.classList.add('hidden');
+            deleteModal.classList.add('hidden');
+            supplierPurchasesModal.classList.add('hidden');
+        }
+        
+        function saveSupplier() {
+            const supplierData = {
+                name: supplierName.value,
+                phone: supplierPhone.value,
+                email: supplierEmail.value,
+                address: supplierAddress.value,
+                notes: supplierNotes.value
+            };
+            
+            let url = '/api/suppliers';
+            let method = 'POST';
+            
+            if (currentSupplierId) {
+                url = `/api/suppliers/${currentSupplierId}`;
+                method = 'PUT';
+            }
+            
+            fetch(url, {
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(supplierData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showNotification(data.message, 'success');
+                    closeAllModals();
+                    // Reload page to show updated data
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1000);
+                } else {
+                    showNotification(data.message, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error saving supplier:', error);
+                showNotification('حدث خطأ أثناء حفظ بيانات المورد.', 'error');
+            });
+        }
+        
+        function deleteSupplier() {
+            fetch(`/api/suppliers/${currentSupplierId}`, {
+                method: 'DELETE'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showNotification(data.message, 'success');
+                    closeAllModals();
+                    // Reload page to show updated data
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1000);
+                } else {
+                    showNotification(data.message, 'error');
+                    closeAllModals();
+                }
+            })
+            .catch(error => {
+                console.error('Error deleting supplier:', error);
+                showNotification('حدث خطأ أثناء حذف المورد.', 'error');
+                closeAllModals();
+            });
+        }
+    });
+</script>
+{% endblock %}

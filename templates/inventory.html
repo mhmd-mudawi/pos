@@ -1,0 +1,587 @@
+{% extends "base.html" %}
+
+{% block title %}المخزون{% endblock %}
+
+{% block header %}إدارة المخزون{% endblock %}
+
+{% block head %}
+<style>
+    .modal {
+        transition: opacity 0.25s ease;
+    }
+    .modal-active {
+        overflow-y: visible !important;
+        overflow-x: hidden;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="bg-white rounded-lg shadow">
+    <!-- Header controls -->
+    <div class="p-6 border-b flex flex-col md:flex-row md:items-center md:justify-between">
+        <h2 class="text-lg font-semibold mb-4 md:mb-0">المنتجات في المخزون</h2>
+        <div class="flex flex-col md:flex-row space-y-2 md:space-y-0 md:space-x-2 md:space-x-reverse">
+            <div class="relative">
+                <input type="text" id="search-input" placeholder="بحث عن منتج..." class="w-full md:w-64 pr-10 pl-4 py-2 rounded-lg border focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500">
+                <div class="absolute inset-y-0 right-0 flex items-center pr-3">
+                    <i class="fas fa-search text-gray-400"></i>
+                </div>
+            </div>
+            
+            <div class="relative" x-data="{ open: false }" @click.away="open = false">
+                <button @click="open = !open" class="flex items-center justify-between w-full md:w-48 px-4 py-2 bg-white border rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500">
+                    <span>إظهار/إخفاء الأعمدة</span>
+                    <i class="fas fa-chevron-down ml-2"></i>
+                </button>
+                <div x-show="open" class="absolute left-0 z-10 mt-2 w-64 bg-white border rounded-lg shadow-lg" style="display: none;">
+                    <div class="p-4 space-y-2">
+                        <div>
+                            <label class="inline-flex items-center">
+                                <input type="checkbox" class="column-toggle" data-column="id" checked>
+                                <span class="mr-2">معرف المنتج</span>
+                            </label>
+                        </div>
+                        <div>
+                            <label class="inline-flex items-center">
+                                <input type="checkbox" class="column-toggle" data-column="name" checked>
+                                <span class="mr-2">اسم المنتج</span>
+                            </label>
+                        </div>
+                        <div>
+                            <label class="inline-flex items-center">
+                                <input type="checkbox" class="column-toggle" data-column="total-quantity">
+                                <span class="mr-2">الكمية المشتراة</span>
+                            </label>
+                        </div>
+                        <div>
+                            <label class="inline-flex items-center">
+                                <input type="checkbox" class="column-toggle" data-column="sold-quantity">
+                                <span class="mr-2">الكمية المباعة</span>
+                            </label>
+                        </div>
+                        <div>
+                            <label class="inline-flex items-center">
+                                <input type="checkbox" class="column-toggle" data-column="available-quantity" checked>
+                                <span class="mr-2">الكمية المتاحة</span>
+                            </label>
+                        </div>
+                        <div>
+                            <label class="inline-flex items-center">
+                                <input type="checkbox" class="column-toggle" data-column="unit-purchase">
+                                <span class="mr-2">سعر الشراء (وحدة)</span>
+                            </label>
+                        </div>
+                        <div>
+                            <label class="inline-flex items-center">
+                                <input type="checkbox" class="column-toggle" data-column="unit-selling" checked>
+                                <span class="mr-2">سعر البيع (وحدة)</span>
+                            </label>
+                        </div>
+                        <div>
+                            <label class="inline-flex items-center">
+                                <input type="checkbox" class="column-toggle" data-column="unit-profit">
+                                <span class="mr-2">الربح (وحدة)</span>
+                            </label>
+                        </div>
+                        <div>
+                            <label class="inline-flex items-center">
+                                <input type="checkbox" class="column-toggle" data-column="inventory-value">
+                                <span class="mr-2">قيمة المخزون</span>
+                            </label>
+                        </div>
+                        <div>
+                            <label class="inline-flex items-center">
+                                <input type="checkbox" class="column-toggle" data-column="inventory-profit">
+                                <span class="mr-2">ربح المخزون</span>
+                            </label>
+                        </div>
+                        <div>
+                            <label class="inline-flex items-center">
+                                <input type="checkbox" class="column-toggle" data-column="total-sales">
+                                <span class="mr-2">إجمالي المبيعات</span>
+                            </label>
+                        </div>
+                        <div>
+                            <label class="inline-flex items-center">
+                                <input type="checkbox" class="column-toggle" data-column="total-profit-earned">
+                                <span class="mr-2">إجمالي الربح المكتسب</span>
+                            </label>
+                        </div>
+                        <div>
+                            <label class="inline-flex items-center">
+                                <input type="checkbox" class="column-toggle" data-column="expiry-date">
+                                <span class="mr-2">تاريخ الانتهاء</span>
+                            </label>
+                        </div>
+                        <div>
+                            <label class="inline-flex items-center">
+                                <input type="checkbox" class="column-toggle" data-column="location">
+                                <span class="mr-2">الموقع</span>
+                            </label>
+                        </div>
+                        <div>
+                            <label class="inline-flex items-center">
+                                <input type="checkbox" class="column-toggle" data-column="notes">
+                                <span class="mr-2">الملاحظات</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <button id="add-product-btn" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50">
+                <i class="fas fa-plus mr-2"></i>إضافة منتج جديد
+            </button>
+        </div>
+    </div>
+    
+    <!-- Products table -->
+    <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200" id="inventory-table">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th scope="col" class="column-id px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        معرف المنتج
+                    </th>
+                    <th scope="col" class="column-name px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        اسم المنتج
+                    </th>
+                    <th scope="col" class="column-total-quantity px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider hidden">
+                        الكمية المشتراة
+                    </th>
+                    <th scope="col" class="column-sold-quantity px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider hidden">
+                        الكمية المباعة
+                    </th>
+                    <th scope="col" class="column-available-quantity px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        الكمية المتاحة
+                    </th>
+                    <th scope="col" class="column-unit-purchase px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider hidden">
+                        سعر الشراء (وحدة)
+                    </th>
+                    <th scope="col" class="column-unit-selling px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        سعر البيع (وحدة)
+                    </th>
+                    <th scope="col" class="column-unit-profit px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider hidden">
+                        الربح (وحدة)
+                    </th>
+                    <th scope="col" class="column-inventory-value px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider hidden">
+                        قيمة المخزون
+                    </th>
+                    <th scope="col" class="column-inventory-profit px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider hidden">
+                        ربح المخزون
+                    </th>
+                    <th scope="col" class="column-total-sales px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider hidden">
+                        إجمالي المبيعات
+                    </th>
+                    <th scope="col" class="column-total-profit-earned px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider hidden">
+                        إجمالي الربح المكتسب
+                    </th>
+                    <th scope="col" class="column-expiry-date px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider hidden">
+                        تاريخ الانتهاء
+                    </th>
+                    <th scope="col" class="column-location px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider hidden">
+                        الموقع
+                    </th>
+                    <th scope="col" class="column-notes px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider hidden">
+                        الملاحظات
+                    </th>
+                    <th scope="col" class="column-actions px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        الإجراءات
+                    </th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                {% for product in products %}
+                <tr class="product-row">
+                    <td class="column-id px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {{ product.id }}
+                    </td>
+                    <td class="column-name px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        {{ product.name }}
+                    </td>
+                    <td class="column-total-quantity px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden">
+                        {{ product.total_quantity }}
+                    </td>
+                    <td class="column-sold-quantity px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden">
+                        {{ product.sold_quantity }}
+                    </td>
+                    <td class="column-available-quantity px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {{ product.available_quantity }}
+                    </td>
+                    <td class="column-unit-purchase px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden">
+                        {{ product.unit_purchase_price }} $
+                    </td>
+                    <td class="column-unit-selling px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {{ product.unit_selling_price }} $
+                    </td>
+                    <td class="column-unit-profit px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden">
+                        {{ product.unit_profit }} $
+                    </td>
+                    <td class="column-inventory-value px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden">
+                        {{ product.inventory_purchase_value }} $
+                    </td>
+                    <td class="column-inventory-profit px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden">
+                        {{ product.inventory_profit }} $
+                    </td>
+                    <td class="column-total-sales px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden">
+                        {{ product.total_sales }} $
+                    </td>
+                    <td class="column-total-profit-earned px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden">
+                        {{ product.total_profit_earned }} $
+                    </td>
+                    <td class="column-expiry-date px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden">
+                        {{ product.expiry_date }}
+                    </td>
+                    <td class="column-location px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden">
+                        {{ product.location }}
+                    </td>
+                    <td class="column-notes px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden">
+                        {{ product.notes }}
+                    </td>
+                    <td class="column-actions px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <div class="flex space-x-2 space-x-reverse">
+                            <button class="edit-product-btn text-indigo-600 hover:text-indigo-900" data-id="{{ product.id }}">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="delete-product-btn text-red-600 hover:text-red-900" data-id="{{ product.id }}">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Add/Edit Product Modal -->
+<div id="product-modal" class="modal fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center hidden z-50">
+    <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+        <div class="flex justify-between items-center px-6 py-4 border-b">
+            <h3 class="text-lg font-semibold" id="modal-title">إضافة منتج جديد</h3>
+            <button class="close-modal text-gray-500 hover:text-gray-800">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="px-6 py-4">
+            <form id="product-form">
+                <input type="hidden" id="product-id">
+                <div class="space-y-4">
+                    <div>
+                        <label for="product-name" class="block text-sm font-medium text-gray-700 mb-1">اسم المنتج*</label>
+                        <input type="text" id="product-name" required class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                    </div>
+                    <div>
+                        <label for="product-quantity" class="block text-sm font-medium text-gray-700 mb-1">الكمية*</label>
+                        <input type="number" min="0" id="product-quantity" required class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                    </div>
+                    <div>
+                        <label for="product-total-purchase-price" class="block text-sm font-medium text-gray-700 mb-1">سعر الشراء الإجمالي*</label>
+                        <input type="number" min="0" step="0.01" id="product-total-purchase-price" required class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                    </div>
+                    <div>
+                        <label for="product-unit-purchase-price" class="block text-sm font-medium text-gray-700 mb-1">سعر شراء الوحدة (يحسب تلقائياً)</label>
+                        <input type="number" min="0" step="0.01" id="product-unit-purchase-price" readonly class="w-full bg-gray-100 rounded-md border-gray-300 shadow-sm">
+                    </div>
+                    <div>
+                        <label for="product-unit-selling-price" class="block text-sm font-medium text-gray-700 mb-1">سعر بيع الوحدة*</label>
+                        <input type="number" min="0" step="0.01" id="product-unit-selling-price" required class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                    </div>
+                    <div>
+                        <label for="product-unit-profit" class="block text-sm font-medium text-gray-700 mb-1">ربح الوحدة (يحسب تلقائياً)</label>
+                        <input type="number" min="0" step="0.01" id="product-unit-profit" readonly class="w-full bg-gray-100 rounded-md border-gray-300 shadow-sm">
+                    </div>
+                    <div>
+                        <label for="product-expiry-date" class="block text-sm font-medium text-gray-700 mb-1">تاريخ الانتهاء</label>
+                        <input type="date" id="product-expiry-date" class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                    </div>
+                    <div>
+                        <label for="product-location" class="block text-sm font-medium text-gray-700 mb-1">الموقع</label>
+                        <input type="text" id="product-location" class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                    </div>
+                    <div>
+                        <label for="product-notes" class="block text-sm font-medium text-gray-700 mb-1">ملاحظات</label>
+                        <textarea id="product-notes" rows="3" class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"></textarea>
+                    </div>
+                </div>
+            </form>
+        </div>
+        <div class="px-6 py-4 border-t bg-gray-50 flex justify-end">
+            <button class="close-modal px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-opacity-50 mr-2">إلغاء</button>
+            <button id="save-product-btn" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50">حفظ</button>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div id="delete-modal" class="modal fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center hidden z-50">
+    <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+        <div class="px-6 py-4 border-b">
+            <h3 class="text-lg font-semibold text-gray-900">تأكيد الحذف</h3>
+        </div>
+        <div class="px-6 py-4">
+            <p class="text-gray-700">هل أنت متأكد من رغبتك في حذف هذا المنتج؟ هذا الإجراء لا يمكن التراجع عنه.</p>
+        </div>
+        <div class="px-6 py-4 border-t bg-gray-50 flex justify-end">
+            <button class="close-modal px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-opacity-50 mr-2">إلغاء</button>
+            <button id="confirm-delete-btn" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50">حذف</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/alpinejs@2.8.2/dist/alpine.min.js" defer></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Variables
+        let currentProductId = null;
+        const searchInput = document.getElementById('search-input');
+        const inventoryTable = document.getElementById('inventory-table');
+        const productModal = document.getElementById('product-modal');
+        const deleteModal = document.getElementById('delete-modal');
+        const productForm = document.getElementById('product-form');
+        const addProductBtn = document.getElementById('add-product-btn');
+        const saveProductBtn = document.getElementById('save-product-btn');
+        const confirmDeleteBtn = document.getElementById('confirm-delete-btn');
+        const closeModalBtns = document.querySelectorAll('.close-modal');
+        
+        // Input fields
+        const productIdInput = document.getElementById('product-id');
+        const productNameInput = document.getElementById('product-name');
+        const productQuantityInput = document.getElementById('product-quantity');
+        const productTotalPurchaseInput = document.getElementById('product-total-purchase-price');
+        const productUnitPurchaseInput = document.getElementById('product-unit-purchase-price');
+        const productUnitSellingInput = document.getElementById('product-unit-selling-price');
+        const productUnitProfitInput = document.getElementById('product-unit-profit');
+        const productExpiryDateInput = document.getElementById('product-expiry-date');
+        const productLocationInput = document.getElementById('product-location');
+        const productNotesInput = document.getElementById('product-notes');
+        
+        // Event Listeners
+        
+        // Column visibility toggles
+        document.querySelectorAll('.column-toggle').forEach(toggle => {
+            toggle.addEventListener('change', function() {
+                const columnName = this.getAttribute('data-column');
+                const isVisible = this.checked;
+                
+                document.querySelectorAll(`.column-${columnName}`).forEach(el => {
+                    if (isVisible) {
+                        el.classList.remove('hidden');
+                    } else {
+                        el.classList.add('hidden');
+                    }
+                });
+            });
+        });
+        
+        // Search functionality
+        searchInput.addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase();
+            const rows = inventoryTable.querySelectorAll('tbody tr');
+            
+            rows.forEach(row => {
+                const productName = row.querySelector('.column-name').textContent.toLowerCase();
+                const productId = row.querySelector('.column-id').textContent.toLowerCase();
+                
+                if (productName.includes(searchTerm) || productId.includes(searchTerm)) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        });
+        
+        // Add Product Button
+        addProductBtn.addEventListener('click', function() {
+            openAddProductModal();
+        });
+        
+        // Edit Product Buttons
+        document.querySelectorAll('.edit-product-btn').forEach(button => {
+            button.addEventListener('click', function() {
+                const productId = this.getAttribute('data-id');
+                openEditProductModal(productId);
+            });
+        });
+        
+        // Delete Product Buttons
+        document.querySelectorAll('.delete-product-btn').forEach(button => {
+            button.addEventListener('click', function() {
+                const productId = this.getAttribute('data-id');
+                openDeleteConfirmationModal(productId);
+            });
+        });
+        
+        // Close Modal Buttons
+        closeModalBtns.forEach(button => {
+            button.addEventListener('click', function() {
+                closeModals();
+            });
+        });
+        
+        // Save Product Button
+        saveProductBtn.addEventListener('click', function() {
+            if (productForm.checkValidity()) {
+                saveProduct();
+            } else {
+                productForm.reportValidity();
+            }
+        });
+        
+        // Confirm Delete Button
+        confirmDeleteBtn.addEventListener('click', function() {
+            deleteProduct();
+        });
+        
+        // Calculate unit price and profit automatically
+        productTotalPurchaseInput.addEventListener('input', calculateUnitValues);
+        productQuantityInput.addEventListener('input', calculateUnitValues);
+        productUnitSellingInput.addEventListener('input', calculateUnitValues);
+        
+        // Functions
+        
+        function calculateUnitValues() {
+            const quantity = parseFloat(productQuantityInput.value) || 0;
+            const totalPurchase = parseFloat(productTotalPurchaseInput.value) || 0;
+            const unitSelling = parseFloat(productUnitSellingInput.value) || 0;
+            
+            // Calculate unit purchase price
+            const unitPurchase = quantity > 0 ? totalPurchase / quantity : 0;
+            productUnitPurchaseInput.value = unitPurchase.toFixed(2);
+            
+            // Calculate unit profit
+            const unitProfit = unitSelling - unitPurchase;
+            productUnitProfitInput.value = unitProfit.toFixed(2);
+        }
+        
+        function openAddProductModal() {
+            currentProductId = null;
+            document.getElementById('modal-title').textContent = 'إضافة منتج جديد';
+            
+            // Clear form
+            productForm.reset();
+            productIdInput.value = '';
+            
+            // Show modal
+            productModal.classList.remove('hidden');
+            productNameInput.focus();
+        }
+        
+        function openEditProductModal(productId) {
+            currentProductId = productId;
+            document.getElementById('modal-title').textContent = 'تعديل المنتج';
+            
+            // Fetch product data
+            fetch(`/api/products/${productId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const product = data.product;
+                        
+                        // Fill form with product data
+                        productIdInput.value = product.id;
+                        productNameInput.value = product.name;
+                        productQuantityInput.value = product.quantity;
+                        productTotalPurchaseInput.value = product.total_purchase_price;
+                        productUnitPurchaseInput.value = product.unit_purchase_price;
+                        productUnitSellingInput.value = product.unit_selling_price;
+                        productUnitProfitInput.value = product.unit_profit;
+                        productExpiryDateInput.value = product.expiry_date;
+                        productLocationInput.value = product.location;
+                        productNotesInput.value = product.notes;
+                        
+                        // Show modal
+                        productModal.classList.remove('hidden');
+                        productNameInput.focus();
+                    } else {
+                        showNotification(data.message, 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching product data:', error);
+                    showNotification('حدث خطأ أثناء جلب بيانات المنتج.', 'error');
+                });
+        }
+        
+        function openDeleteConfirmationModal(productId) {
+            currentProductId = productId;
+            deleteModal.classList.remove('hidden');
+        }
+        
+        function closeModals() {
+            productModal.classList.add('hidden');
+            deleteModal.classList.add('hidden');
+        }
+        
+        function saveProduct() {
+            const productData = {
+                name: productNameInput.value,
+                quantity: parseInt(productQuantityInput.value),
+                total_purchase_price: parseFloat(productTotalPurchaseInput.value),
+                unit_selling_price: parseFloat(productUnitSellingInput.value),
+                expiry_date: productExpiryDateInput.value,
+                location: productLocationInput.value,
+                notes: productNotesInput.value
+            };
+            
+            let url = '/api/products';
+            let method = 'POST';
+            
+            if (currentProductId) {
+                url = `/api/products/${currentProductId}`;
+                method = 'PUT';
+            }
+            
+            fetch(url, {
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(productData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showNotification(data.message, 'success');
+                    closeModals();
+                    // Reload page to show updated data
+                    window.location.reload();
+                } else {
+                    showNotification(data.message, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error saving product:', error);
+                showNotification('حدث خطأ أثناء حفظ المنتج.', 'error');
+            });
+        }
+        
+        function deleteProduct() {
+            fetch(`/api/products/${currentProductId}`, {
+                method: 'DELETE'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showNotification(data.message, 'success');
+                    closeModals();
+                    // Reload page to show updated data
+                    window.location.reload();
+                } else {
+                    showNotification(data.message, 'error');
+                    closeModals();
+                }
+            })
+            .catch(error => {
+                console.error('Error deleting product:', error);
+                showNotification('حدث خطأ أثناء حذف المنتج.', 'error');
+                closeModals();
+            });
+        }
+    });
+</script>
+{% endblock %}

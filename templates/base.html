@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام نقطة البيع - {% block title %}{% endblock %}</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom styles -->
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700&display=swap');
+        body {
+            font-family: 'Tajawal', sans-serif;
+        }
+        .sidebar-item.active {
+            background-color: #4338ca;
+            color: white;
+        }
+    </style>
+    {% block head %}{% endblock %}
+</head>
+<body class="bg-gray-100">
+    <div class="flex h-screen overflow-hidden">
+        <!-- Sidebar -->
+        <div class="hidden md:flex md:flex-shrink-0">
+            <div class="flex flex-col w-64 bg-indigo-800 text-white">
+                <div class="flex items-center justify-center h-16 px-4 bg-indigo-900">
+                    <h1 class="text-xl font-bold">نظام نقطة البيع</h1>
+                </div>
+                <div class="flex flex-col flex-grow px-4 py-6 overflow-y-auto">
+                    <nav class="flex-1 space-y-2">
+                        <a href="{{ url_for('dashboard') }}" class="sidebar-item flex items-center px-4 py-3 rounded-md {% if request.path == url_for('dashboard') %}active{% endif %}">
+                            <i class="fas fa-tachometer-alt mr-3"></i>
+                            <span>لوحة التحكم</span>
+                        </a>
+                        <a href="{{ url_for('new_sale') }}" class="sidebar-item flex items-center px-4 py-3 rounded-md {% if request.path == url_for('new_sale') %}active{% endif %}">
+                            <i class="fas fa-cash-register mr-3"></i>
+                            <span>مبيعات جديدة</span>
+                        </a>
+                        <a href="{{ url_for('sales_records') }}" class="sidebar-item flex items-center px-4 py-3 rounded-md {% if request.path == url_for('sales_records') %}active{% endif %}">
+                            <i class="fas fa-receipt mr-3"></i>
+                            <span>سجل المبيعات</span>
+                        </a>
+                        <a href="{{ url_for('new_purchase') }}" class="sidebar-item flex items-center px-4 py-3 rounded-md {% if request.path == url_for('new_purchase') %}active{% endif %}">
+                            <i class="fas fa-shopping-cart mr-3"></i>
+                            <span>مشتريات جديدة</span>
+                        </a>
+                        <a href="{{ url_for('purchases_records') }}" class="sidebar-item flex items-center px-4 py-3 rounded-md {% if request.path == url_for('purchases_records') %}active{% endif %}">
+                            <i class="fas fa-clipboard-list mr-3"></i>
+                            <span>سجل المشتريات</span>
+                        </a>
+                        <a href="{{ url_for('inventory') }}" class="sidebar-item flex items-center px-4 py-3 rounded-md {% if request.path == url_for('inventory') %}active{% endif %}">
+                            <i class="fas fa-boxes mr-3"></i>
+                            <span>المخزون</span>
+                        </a>
+                        <a href="{{ url_for('customers') }}" class="sidebar-item flex items-center px-4 py-3 rounded-md {% if request.path == url_for('customers') %}active{% endif %}">
+                            <i class="fas fa-users mr-3"></i>
+                            <span>العملاء</span>
+                        </a>
+                        <a href="{{ url_for('suppliers') }}" class="sidebar-item flex items-center px-4 py-3 rounded-md {% if request.path == url_for('suppliers') %}active{% endif %}">
+                            <i class="fas fa-truck mr-3"></i>
+                            <span>الموردون</span>
+                        </a>
+                        <a href="{{ url_for('reports') }}" class="sidebar-item flex items-center px-4 py-3 rounded-md {% if request.path == url_for('reports') %}active{% endif %}">
+                            <i class="fas fa-chart-bar mr-3"></i>
+                            <span>التقارير</span>
+                        </a>
+                        <a href="{{ url_for('notes') }}" class="sidebar-item flex items-center px-4 py-3 rounded-md {% if request.path == url_for('notes') %}active{% endif %}">
+                            <i class="fas fa-sticky-note mr-3"></i>
+                            <span>الملاحظات</span>
+                        </a>
+                    </nav>
+                </div>
+                <div class="flex-shrink-0 px-4 py-3 bg-indigo-900">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-user-circle text-2xl"></i>
+                        </div>
+                        <div class="ml-3">
+                            <p class="text-sm font-medium">المستخدم الحالي</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main content -->
+        <div class="flex flex-col flex-1 overflow-hidden">
+            <!-- Top navbar -->
+            <div class="bg-white shadow-sm z-10">
+                <div class="flex items-center justify-between h-16 px-6">
+                    <!-- Mobile menu button -->
+                    <button type="button" class="md:hidden text-gray-500 focus:outline-none">
+                        <i class="fas fa-bars text-xl"></i>
+                    </button>
+                    
+                    <!-- Header title -->
+                    <h1 class="text-xl font-semibold text-gray-800">{% block header %}{% endblock %}</h1>
+                    
+                    <!-- User dropdown (can be expanded later) -->
+                    <div class="flex items-center">
+                        <div class="relative">
+                            <button type="button" class="flex items-center text-gray-500">
+                                <i class="fas fa-user-circle text-2xl"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Page content -->
+            <div class="flex-1 overflow-auto">
+                <main class="p-6">
+                    <!-- Flash messages -->
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, message in messages %}
+                        <div class="mb-4 px-4 py-3 rounded-md 
+                        {% if category == 'success' %}bg-green-100 text-green-800 border border-green-200
+                        {% elif category == 'error' %}bg-red-100 text-red-800 border border-red-200
+                        {% else %}bg-blue-100 text-blue-800 border border-blue-200{% endif %}">
+                            {{ message }}
+                        </div>
+                        {% endfor %}
+                    {% endif %}
+                    {% endwith %}
+
+                    <!-- Main content from templates that extend this base template -->
+                    {% block content %}{% endblock %}
+                </main>
+            </div>
+        </div>
+    </div>
+
+    <!-- Common JavaScript -->
+    <script>
+        // Function to show notifications
+        function showNotification(message, type = 'success') {
+            const notification = document.createElement('div');
+            notification.className = `fixed top-4 right-4 px-4 py-3 rounded-md shadow-md z-50 ${
+                type === 'success' ? 'bg-green-100 text-green-800 border border-green-200' : 
+                type === 'error' ? 'bg-red-100 text-red-800 border border-red-200' : 
+                'bg-blue-100 text-blue-800 border border-blue-200'
+            }`;
+            notification.textContent = message;
+            
+            document.body.appendChild(notification);
+            
+            // Remove notification after 3 seconds
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+        }
+        
+        // Mobile menu toggle (can be expanded later)
+        document.addEventListener('DOMContentLoaded', function() {
+            const menuButton = document.querySelector('.md\\:hidden');
+            // Add mobile menu functionality here if needed
+        });
+    </script>
+    
+    <!-- Additional scripts specific to templates that extend this base template -->
+    {% block scripts %}{% endblock %}
+</body>
+</html>

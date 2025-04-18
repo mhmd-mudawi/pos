@@ -1,0 +1,287 @@
+{% extends "base.html" %}
+
+{% block title %}مبيعات جديدة{% endblock %}
+
+{% block header %}تسجيل مبيعات جديدة{% endblock %}
+
+{% block content %}
+<div class="bg-white rounded-lg shadow">
+    <div class="p-6 border-b">
+        <h2 class="text-lg font-semibold">تسجيل عملية بيع جديدة</h2>
+    </div>
+    
+    <form id="sale-form" class="p-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Sale Date -->
+            <div>
+                <label for="sale-date" class="block text-sm font-medium text-gray-700 mb-1">تاريخ البيع*</label>
+                <input type="date" id="sale-date" required class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+            </div>
+            
+            <!-- Customer Selection -->
+            <div>
+                <label for="customer-select" class="block text-sm font-medium text-gray-700 mb-1">العميل</label>
+                <select id="customer-select" class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                    <option value="">-- بدون عميل --</option>
+                    {% for customer in customers %}
+                    <option value="{{ customer.id }}">{{ customer.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        
+        <div class="mt-6">
+            <h3 class="text-md font-medium mb-3">المنتجات المباعة</h3>
+            
+            <!-- Product Selection Section -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <div>
+                    <label for="product-select" class="block text-sm font-medium text-gray-700 mb-1">المنتج*</label>
+                    <select id="product-select" class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                        <option value="">-- اختر منتج --</option>
+                        {% for product in products %}
+                        <option value="{{ product.id }}" data-price="{{ product.unit_selling_price }}">{{ product.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div>
+                    <label for="product-quantity" class="block text-sm font-medium text-gray-700 mb-1">الكمية*</label>
+                    <input type="number" min="1" value="1" id="product-quantity" class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                </div>
+                
+                <div class="flex items-end">
+                    <button type="button" id="add-product-btn" class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50">
+                        <i class="fas fa-plus mr-1"></i> إضافة
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Products Table -->
+            <div class="overflow-x-auto border rounded-md">
+                <table class="min-w-full divide-y divide-gray-200" id="sale-items-table">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">المنتج</th>
+                            <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">الكمية</th>
+                            <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">سعر الوحدة</th>
+                            <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">الإجمالي</th>
+                            <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">الإجراءات</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        <tr id="empty-row">
+                            <td colspan="5" class="px-6 py-4 text-sm text-gray-500 text-center">لم يتم إضافة منتجات بعد</td>
+                        </tr>
+                    </tbody>
+                    <tfoot class="bg-gray-50">
+                        <tr>
+                            <td colspan="3" class="px-6 py-4 text-sm font-medium text-gray-900 text-left">الإجمالي</td>
+                            <td class="px-6 py-4 text-sm font-medium text-gray-900" id="total-amount">0.00 $</td>
+                            <td></td>
+                        </tr>
+                        <tr>
+                            <td colspan="3" class="px-6 py-4 text-sm font-medium text-gray-900 text-left">الخصم</td>
+                            <td class="px-6 py-4">
+                                <input type="number" min="0" value="0" step="0.01" id="discount-amount" class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                            </td>
+                            <td></td>
+                        </tr>
+                        <tr>
+                            <td colspan="3" class="px-6 py-4 text-lg font-semibold text-gray-900 text-left">المبلغ النهائي</td>
+                            <td class="px-6 py-4 text-lg font-semibold text-gray-900" id="final-amount">0.00 $</td>
+                            <td></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+        
+        <div class="mt-6">
+            <label for="sale-notes" class="block text-sm font-medium text-gray-700 mb-1">ملاحظات</label>
+            <textarea id="sale-notes" rows="3" class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"></textarea>
+        </div>
+        
+        <div class="mt-6 flex justify-end">
+            <button type="button" id="cancel-sale-btn" class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-opacity-50 mr-2">إلغاء</button>
+            <button type="submit" id="save-sale-btn" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50">حفظ المبيعات</button>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Elements
+        const saleForm = document.getElementById('sale-form');
+        const productSelect = document.getElementById('product-select');
+        const productQuantity = document.getElementById('product-quantity');
+        const addProductBtn = document.getElementById('add-product-btn');
+        const saleItemsTable = document.getElementById('sale-items-table');
+        const emptyRow = document.getElementById('empty-row');
+        const totalAmountEl = document.getElementById('total-amount');
+        const discountAmountEl = document.getElementById('discount-amount');
+        const finalAmountEl = document.getElementById('final-amount');
+        const saveSaleBtn = document.getElementById('save-sale-btn');
+        const cancelSaleBtn = document.getElementById('cancel-sale-btn');
+        
+        // Set default date to today
+        document.getElementById('sale-date').valueAsDate = new Date();
+        
+        // Variables
+        let saleItems = [];
+        let totalAmount = 0;
+        
+        // Event Listeners
+        addProductBtn.addEventListener('click', addProductToSale);
+        discountAmountEl.addEventListener('input', updateTotals);
+        saveSaleBtn.addEventListener('click', saveSale);
+        cancelSaleBtn.addEventListener('click', function() {
+            window.location.href = "{{ url_for('dashboard') }}";
+        });
+        
+        // Functions
+        function addProductToSale() {
+            const productId = productSelect.value;
+            if (!productId) {
+                showNotification('الرجاء اختيار منتج', 'error');
+                return;
+            }
+            
+            const quantity = parseInt(productQuantity.value);
+            if (isNaN(quantity) || quantity <= 0) {
+                showNotification('الرجاء إدخال كمية صحيحة', 'error');
+                return;
+            }
+            
+            // Check if product already exists in sale items
+            const existingItemIndex = saleItems.findIndex(item => item.productId === productId);
+            if (existingItemIndex !== -1) {
+                // Update existing item quantity
+                saleItems[existingItemIndex].quantity += quantity;
+                saleItems[existingItemIndex].total = saleItems[existingItemIndex].quantity * saleItems[existingItemIndex].unitPrice;
+            } else {
+                // Get product details
+                const selectedOption = productSelect.options[productSelect.selectedIndex];
+                const productName = selectedOption.textContent;
+                const unitPrice = parseFloat(selectedOption.getAttribute('data-price'));
+                
+                // Add new item
+                saleItems.push({
+                    productId,
+                    name: productName,
+                    quantity,
+                    unitPrice,
+                    total: quantity * unitPrice
+                });
+            }
+            
+            // Reset form
+            productSelect.value = '';
+            productQuantity.value = 1;
+            
+            // Update UI
+            updateSaleItemsTable();
+            updateTotals();
+        }
+        
+        function updateSaleItemsTable() {
+            const tbody = saleItemsTable.querySelector('tbody');
+            tbody.innerHTML = '';
+            
+            if (saleItems.length === 0) {
+                tbody.appendChild(emptyRow);
+                return;
+            }
+            
+            saleItems.forEach((item, index) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${item.name}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${item.quantity}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${item.unitPrice.toFixed(2)} $</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${item.total.toFixed(2)} $</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <button type="button" class="text-red-600 hover:text-red-900" onclick="removeItem(${index})">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+        
+        function updateTotals() {
+            totalAmount = saleItems.reduce((sum, item) => sum + item.total, 0);
+            const discount = parseFloat(discountAmountEl.value) || 0;
+            const finalAmount = Math.max(totalAmount - discount, 0);
+            
+            totalAmountEl.textContent = totalAmount.toFixed(2) + ' $';
+            finalAmountEl.textContent = finalAmount.toFixed(2) + ' $';
+        }
+        
+        function saveSale(event) {
+            event.preventDefault();
+            
+            if (saleItems.length === 0) {
+                showNotification('الرجاء إضافة منتج واحد على الأقل', 'error');
+                return;
+            }
+            
+            const saleDate = document.getElementById('sale-date').value;
+            if (!saleDate) {
+                showNotification('الرجاء تحديد تاريخ البيع', 'error');
+                return;
+            }
+            
+            const customerId = document.getElementById('customer-select').value;
+            const notes = document.getElementById('sale-notes').value;
+            const discount = parseFloat(discountAmountEl.value) || 0;
+            
+            // Prepare sale data
+            const saleData = {
+                items: saleItems.map(item => ({
+                    product_id: item.productId,
+                    quantity: item.quantity
+                })),
+                date: saleDate,
+                customer_id: customerId || null,
+                notes: notes,
+                discount: discount
+            };
+            
+            // Submit data
+            fetch('/api/sales/batch', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(saleData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showNotification(data.message, 'success');
+                    setTimeout(() => {
+                        window.location.href = "{{ url_for('sales_records') }}";
+                    }, 1500);
+                } else {
+                    showNotification(data.message, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error saving sale:', error);
+                showNotification('حدث خطأ أثناء حفظ المبيعات.', 'error');
+            });
+        }
+        
+        // Make removeItem function available globally
+        window.removeItem = function(index) {
+            saleItems.splice(index, 1);
+            updateSaleItemsTable();
+            updateTotals();
+        };
+    });
+</script>
+{% endblock %}

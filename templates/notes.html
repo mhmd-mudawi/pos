@@ -1,0 +1,335 @@
+{% extends "base.html" %}
+
+{% block title %}الملاحظات{% endblock %}
+
+{% block header %}الملاحظات{% endblock %}
+
+{% block content %}
+<div class="bg-white rounded-lg shadow">
+    <!-- Header controls -->
+    <div class="p-6 border-b flex flex-col md:flex-row md:items-center md:justify-between">
+        <h2 class="text-lg font-semibold mb-4 md:mb-0">الملاحظات</h2>
+        <div class="flex flex-col md:flex-row space-y-2 md:space-y-0 md:space-x-2 md:space-x-reverse">
+            <div class="relative">
+                <input type="text" id="search-input" placeholder="بحث في الملاحظات..." class="w-full md:w-64 pr-10 pl-4 py-2 rounded-lg border focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500">
+                <div class="absolute inset-y-0 right-0 flex items-center pr-3">
+                    <i class="fas fa-search text-gray-400"></i>
+                </div>
+            </div>
+            
+            <button id="add-note-btn" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50">
+                <i class="fas fa-plus mr-2"></i>إضافة ملاحظة جديدة
+            </button>
+        </div>
+    </div>
+    
+    <!-- Notes list -->
+    <div class="p-6">
+        {% if notes %}
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="notes-grid">
+            {% for note in notes %}
+            <div class="note-card bg-yellow-50 rounded-lg shadow-sm border border-yellow-200 overflow-hidden">
+                <div class="p-4 border-b border-yellow-200 bg-yellow-100 flex justify-between items-center">
+                    <h3 class="font-medium text-yellow-800 truncate">{{ note.title }}</h3>
+                    <div class="flex space-x-2 space-x-reverse">
+                        <button class="edit-note-btn text-yellow-700 hover:text-yellow-900" data-id="{{ note.id }}">
+                            <i class="fas fa-pencil-alt"></i>
+                        </button>
+                        <button class="delete-note-btn text-red-600 hover:text-red-900" data-id="{{ note.id }}">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="p-4">
+                    <p class="text-gray-700 whitespace-pre-line">{{ note.content }}</p>
+                </div>
+                <div class="px-4 py-2 bg-yellow-50 text-xs text-gray-500 border-t border-yellow-100">
+                    {{ note.created_at }}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div id="empty-notes" class="text-center py-12">
+            <i class="fas fa-sticky-note text-gray-300 text-6xl mb-4"></i>
+            <p class="text-gray-500">لا توجد ملاحظات بعد. قم بإضافة ملاحظة جديدة!</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Note Modal -->
+<div id="note-modal" class="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center hidden z-50">
+    <div class="bg-white rounded-lg shadow-xl max-w-lg w-full mx-4">
+        <div class="flex justify-between items-center px-6 py-4 border-b">
+            <h3 class="text-lg font-semibold" id="modal-title">إضافة ملاحظة جديدة</h3>
+            <button class="close-modal text-gray-500 hover:text-gray-800">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="px-6 py-4">
+            <form id="note-form">
+                <input type="hidden" id="note-id">
+                <div class="space-y-4">
+                    <div>
+                        <label for="note-title" class="block text-sm font-medium text-gray-700 mb-1">العنوان*</label>
+                        <input type="text" id="note-title" required class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                    </div>
+                    <div>
+                        <label for="note-content" class="block text-sm font-medium text-gray-700 mb-1">المحتوى*</label>
+                        <textarea id="note-content" rows="6" required class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"></textarea>
+                    </div>
+                </div>
+            </form>
+        </div>
+        <div class="px-6 py-4 border-t bg-gray-50 flex justify-end">
+            <button class="close-modal px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-opacity-50 mr-2">إلغاء</button>
+            <button id="save-note-btn" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50">حفظ</button>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div id="delete-modal" class="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center hidden z-50">
+    <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+        <div class="px-6 py-4 border-b">
+            <h3 class="text-lg font-semibold text-gray-900">تأكيد الحذف</h3>
+        </div>
+        <div class="px-6 py-4">
+            <p class="text-gray-700">هل أنت متأكد من رغبتك في حذف هذه الملاحظة؟ هذا الإجراء لا يمكن التراجع عنه.</p>
+        </div>
+        <div class="px-6 py-4 border-t bg-gray-50 flex justify-end">
+            <button class="close-modal px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-opacity-50 mr-2">إلغاء</button>
+            <button id="confirm-delete-btn" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50">حذف</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Variables
+        const searchInput = document.getElementById('search-input');
+        const notesGrid = document.getElementById('notes-grid');
+        const emptyNotes = document.getElementById('empty-notes');
+        
+        // Note modal elements
+        const noteModal = document.getElementById('note-modal');
+        const noteForm = document.getElementById('note-form');
+        const modalTitle = document.getElementById('modal-title');
+        const noteId = document.getElementById('note-id');
+        const noteTitle = document.getElementById('note-title');
+        const noteContent = document.getElementById('note-content');
+        const saveNoteBtn = document.getElementById('save-note-btn');
+        
+        // Delete modal elements
+        const deleteModal = document.getElementById('delete-modal');
+        const confirmDeleteBtn = document.getElementById('confirm-delete-btn');
+        
+        // Buttons
+        const addNoteBtn = document.getElementById('add-note-btn');
+        const editNoteBtns = document.querySelectorAll('.edit-note-btn');
+        const deleteNoteBtns = document.querySelectorAll('.delete-note-btn');
+        const closeModalBtns = document.querySelectorAll('.close-modal');
+        
+        let currentNoteId = null;
+        
+        // Event Listeners
+        
+        // Search functionality
+        searchInput.addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase();
+            const noteCards = document.querySelectorAll('.note-card');
+            
+            let visibleCount = 0;
+            
+            noteCards.forEach(card => {
+                const title = card.querySelector('h3').textContent.toLowerCase();
+                const content = card.querySelector('p').textContent.toLowerCase();
+                
+                if (title.includes(searchTerm) || content.includes(searchTerm)) {
+                    card.style.display = '';
+                    visibleCount++;
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+            
+            // Show/hide empty message
+            if (visibleCount === 0 && noteCards.length > 0) {
+                if (!emptyNotes) {
+                    const emptyDiv = document.createElement('div');
+                    emptyDiv.id = 'empty-notes';
+                    emptyDiv.className = 'text-center py-12';
+                    emptyDiv.innerHTML = `
+                        <i class="fas fa-search text-gray-300 text-6xl mb-4"></i>
+                        <p class="text-gray-500">لا توجد نتائج مطابقة لبحثك.</p>
+                    `;
+                    notesGrid.after(emptyDiv);
+                }
+            } else {
+                const emptySearch = document.getElementById('empty-notes');
+                if (emptySearch && noteCards.length > 0) {
+                    emptySearch.remove();
+                }
+            }
+        });
+        
+        // Add Note Button
+        addNoteBtn.addEventListener('click', function() {
+            openAddNoteModal();
+        });
+        
+        // Edit Note Buttons
+        editNoteBtns.forEach(button => {
+            button.addEventListener('click', function() {
+                const noteId = this.getAttribute('data-id');
+                openEditNoteModal(noteId);
+            });
+        });
+        
+        // Delete Note Buttons
+        deleteNoteBtns.forEach(button => {
+            button.addEventListener('click', function() {
+                const noteId = this.getAttribute('data-id');
+                openDeleteNoteModal(noteId);
+            });
+        });
+        
+        // Close Modal Buttons
+        closeModalBtns.forEach(button => {
+            button.addEventListener('click', function() {
+                closeAllModals();
+            });
+        });
+        
+        // Save Note Button
+        saveNoteBtn.addEventListener('click', function() {
+            if (noteForm.checkValidity()) {
+                saveNote();
+            } else {
+                noteForm.reportValidity();
+            }
+        });
+        
+        // Confirm Delete Button
+        confirmDeleteBtn.addEventListener('click', function() {
+            deleteNote();
+        });
+        
+        // Functions
+        
+        function openAddNoteModal() {
+            currentNoteId = null;
+            modalTitle.textContent = 'إضافة ملاحظة جديدة';
+            noteForm.reset();
+            noteId.value = '';
+            noteModal.classList.remove('hidden');
+            noteTitle.focus();
+        }
+        
+        function openEditNoteModal(id) {
+            currentNoteId = id;
+            modalTitle.textContent = 'تعديل الملاحظة';
+            
+            // Fetch note data
+            fetch(`/api/notes/${id}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const note = data.note;
+                        
+                        noteId.value = note.id;
+                        noteTitle.value = note.title;
+                        noteContent.value = note.content;
+                        
+                        noteModal.classList.remove('hidden');
+                        noteTitle.focus();
+                    } else {
+                        showNotification(data.message, 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching note data:', error);
+                    showNotification('حدث خطأ أثناء جلب بيانات الملاحظة.', 'error');
+                });
+        }
+        
+        function openDeleteNoteModal(id) {
+            currentNoteId = id;
+            deleteModal.classList.remove('hidden');
+        }
+        
+        function closeAllModals() {
+            noteModal.classList.add('hidden');
+            deleteModal.classList.add('hidden');
+        }
+        
+        function saveNote() {
+            const noteData = {
+                title: noteTitle.value,
+                content: noteContent.value
+            };
+            
+            let url = '/api/notes';
+            let method = 'POST';
+            
+            if (currentNoteId) {
+                url = `/api/notes/${currentNoteId}`;
+                method = 'PUT';
+            }
+            
+            fetch(url, {
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(noteData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showNotification(data.message, 'success');
+                    closeAllModals();
+                    // Reload page to show updated data
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1000);
+                } else {
+                    showNotification(data.message, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error saving note:', error);
+                showNotification('حدث خطأ أثناء حفظ الملاحظة.', 'error');
+            });
+        }
+        
+        function deleteNote() {
+            fetch(`/api/notes/${currentNoteId}`, {
+                method: 'DELETE'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showNotification(data.message, 'success');
+                    closeAllModals();
+                    // Reload page to show updated data
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1000);
+                } else {
+                    showNotification(data.message, 'error');
+                    closeAllModals();
+                }
+            })
+            .catch(error => {
+                console.error('Error deleting note:', error);
+                showNotification('حدث خطأ أثناء حذف الملاحظة.', 'error');
+                closeAllModals();
+            });
+        }
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,536 @@
+{% extends "base.html" %}
+
+{% block title %}العملاء{% endblock %}
+
+{% block header %}إدارة العملاء{% endblock %}
+
+{% block content %}
+<div class="bg-white rounded-lg shadow">
+    <!-- Header controls -->
+    <div class="p-6 border-b flex flex-col md:flex-row md:items-center md:justify-between">
+        <h2 class="text-lg font-semibold mb-4 md:mb-0">قائمة العملاء</h2>
+        <div class="flex flex-col md:flex-row space-y-2 md:space-y-0 md:space-x-2 md:space-x-reverse">
+            <div class="relative">
+                <input type="text" id="search-input" placeholder="بحث عن عميل..." class="w-full md:w-64 pr-10 pl-4 py-2 rounded-lg border focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500">
+                <div class="absolute inset-y-0 right-0 flex items-center pr-3">
+                    <i class="fas fa-search text-gray-400"></i>
+                </div>
+            </div>
+            
+            <button id="add-customer-btn" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50">
+                <i class="fas fa-plus mr-2"></i>إضافة عميل جديد
+            </button>
+        </div>
+    </div>
+    
+    <!-- Customers table -->
+    <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200" id="customers-table">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        المعرف
+                    </th>
+                    <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        الاسم
+                    </th>
+                    <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        رقم الهاتف
+                    </th>
+                    <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        البريد الإلكتروني
+                    </th>
+                    <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        العنوان
+                    </th>
+                    <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        ملاحظات
+                    </th>
+                    <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        الإجراءات
+                    </th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                {% for customer in customers %}
+                <tr class="customer-row">
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {{ customer.id }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        {{ customer.name }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {{ customer.phone or "—" }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {{ customer.email or "—" }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {{ customer.address or "—" }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {% if customer.notes %}
+                        <button class="text-indigo-600 hover:text-indigo-900 tooltip-trigger" data-tooltip="{{ customer.notes }}">
+                            <i class="fas fa-info-circle"></i>
+                        </button>
+                        {% else %}
+                        —
+                        {% endif %}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <div class="flex space-x-2 space-x-reverse">
+                            <button class="edit-customer-btn text-indigo-600 hover:text-indigo-900" data-id="{{ customer.id }}">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="view-sales-btn text-blue-600 hover:text-blue-900" data-id="{{ customer.id }}" data-name="{{ customer.name }}">
+                                <i class="fas fa-receipt"></i>
+                            </button>
+                            <button class="delete-customer-btn text-red-600 hover:text-red-900" data-id="{{ customer.id }}">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Customer Modal -->
+<div id="customer-modal" class="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center hidden z-50">
+    <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+        <div class="flex justify-between items-center px-6 py-4 border-b">
+            <h3 class="text-lg font-semibold" id="modal-title">إضافة عميل جديد</h3>
+            <button class="close-modal text-gray-500 hover:text-gray-800">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="px-6 py-4">
+            <form id="customer-form">
+                <input type="hidden" id="customer-id">
+                <div class="space-y-4">
+                    <div>
+                        <label for="customer-name" class="block text-sm font-medium text-gray-700 mb-1">اسم العميل*</label>
+                        <input type="text" id="customer-name" required class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                    </div>
+                    <div>
+                        <label for="customer-phone" class="block text-sm font-medium text-gray-700 mb-1">رقم الهاتف</label>
+                        <input type="tel" id="customer-phone" class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                    </div>
+                    <div>
+                        <label for="customer-email" class="block text-sm font-medium text-gray-700 mb-1">البريد الإلكتروني</label>
+                        <input type="email" id="customer-email" class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                    </div>
+                    <div>
+                        <label for="customer-address" class="block text-sm font-medium text-gray-700 mb-1">العنوان</label>
+                        <textarea id="customer-address" rows="2" class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"></textarea>
+                    </div>
+                    <div>
+                        <label for="customer-notes" class="block text-sm font-medium text-gray-700 mb-1">ملاحظات</label>
+                        <textarea id="customer-notes" rows="3" class="w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"></textarea>
+                    </div>
+                </div>
+            </form>
+        </div>
+        <div class="px-6 py-4 border-t bg-gray-50 flex justify-end">
+            <button class="close-modal px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-opacity-50 mr-2">إلغاء</button>
+            <button id="save-customer-btn" class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50">حفظ</button>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div id="delete-modal" class="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center hidden z-50">
+    <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
+        <div class="px-6 py-4 border-b">
+            <h3 class="text-lg font-semibold text-gray-900">تأكيد الحذف</h3>
+        </div>
+        <div class="px-6 py-4">
+            <p class="text-gray-700">هل أنت متأكد من رغبتك في حذف هذا العميل؟ هذا الإجراء لا يمكن التراجع عنه.</p>
+        </div>
+        <div class="px-6 py-4 border-t bg-gray-50 flex justify-end">
+            <button class="close-modal px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-opacity-50 mr-2">إلغاء</button>
+            <button id="confirm-delete-btn" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50">حذف</button>
+        </div>
+    </div>
+</div>
+
+<!-- Customer Sales Modal -->
+<div id="customer-sales-modal" class="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center hidden z-50">
+    <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4">
+        <div class="flex justify-between items-center px-6 py-4 border-b">
+            <h3 class="text-lg font-semibold" id="customer-sales-title">مبيعات العميل</h3>
+            <button class="close-modal text-gray-500 hover:text-gray-800">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="px-6 py-4 max-h-[70vh] overflow-y-auto">
+            <div id="customer-sales-loading" class="py-8 text-center">
+                <i class="fas fa-spinner fa-spin text-indigo-600 text-2xl"></i>
+                <p class="mt-2 text-gray-600">جاري تحميل البيانات...</p>
+            </div>
+            <div id="customer-sales-content" class="hidden">
+                <div class="mb-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="bg-gray-50 p-4 rounded">
+                        <h4 class="text-sm text-gray-500">إجمالي المبيعات</h4>
+                        <p class="text-xl font-semibold" id="customer-total-sales">0.00 $</p>
+                    </div>
+                    <div class="bg-gray-50 p-4 rounded">
+                        <h4 class="text-sm text-gray-500">عدد المبيعات</h4>
+                        <p class="text-xl font-semibold" id="customer-sales-count">0</p>
+                    </div>
+                    <div class="bg-gray-50 p-4 rounded">
+                        <h4 class="text-sm text-gray-500">متوسط المبيعات</h4>
+                        <p class="text-xl font-semibold" id="customer-average-sale">0.00 $</p>
+                    </div>
+                </div>
+                <div class="overflow-x-auto border rounded">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">التاريخ</th>
+                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">المنتج</th>
+                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">الكمية</th>
+                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">سعر الوحدة</th>
+                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">الإجمالي</th>
+                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">الخصم</th>
+                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">المبلغ النهائي</th>
+                            </tr>
+                        </thead>
+                        <tbody id="customer-sales-table" class="bg-white divide-y divide-gray-200">
+                            <!-- Data will be filled by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+                <div id="customer-no-sales" class="hidden py-8 text-center">
+                    <p class="text-gray-500">لا توجد مبيعات لهذا العميل.</p>
+                </div>
+            </div>
+        </div>
+        <div class="px-6 py-4 border-t bg-gray-50 flex justify-end">
+            <button class="close-modal px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-opacity-50">إغلاق</button>
+        </div>
+    </div>
+</div>
+
+<!-- Tooltip -->
+<div id="tooltip" class="hidden fixed bg-gray-900 text-white p-2 rounded shadow-lg max-w-xs z-50">
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Variables
+        const searchInput = document.getElementById('search-input');
+        const customersTable = document.getElementById('customers-table');
+        const tooltipTriggers = document.querySelectorAll('.tooltip-trigger');
+        const tooltip = document.getElementById('tooltip');
+        
+        // Customer modal elements
+        const customerModal = document.getElementById('customer-modal');
+        const customerForm = document.getElementById('customer-form');
+        const modalTitle = document.getElementById('modal-title');
+        const customerId = document.getElementById('customer-id');
+        const customerName = document.getElementById('customer-name');
+        const customerPhone = document.getElementById('customer-phone');
+        const customerEmail = document.getElementById('customer-email');
+        const customerAddress = document.getElementById('customer-address');
+        const customerNotes = document.getElementById('customer-notes');
+        const saveCustomerBtn = document.getElementById('save-customer-btn');
+        
+        // Delete modal elements
+        const deleteModal = document.getElementById('delete-modal');
+        const confirmDeleteBtn = document.getElementById('confirm-delete-btn');
+        
+        // Sales modal elements
+        const customerSalesModal = document.getElementById('customer-sales-modal');
+        const customerSalesTitle = document.getElementById('customer-sales-title');
+        const customerSalesLoading = document.getElementById('customer-sales-loading');
+        const customerSalesContent = document.getElementById('customer-sales-content');
+        const customerNoSales = document.getElementById('customer-no-sales');
+        
+        // Buttons
+        const addCustomerBtn = document.getElementById('add-customer-btn');
+        const editCustomerBtns = document.querySelectorAll('.edit-customer-btn');
+        const viewSalesBtns = document.querySelectorAll('.view-sales-btn');
+        const deleteCustomerBtns = document.querySelectorAll('.delete-customer-btn');
+        const closeModalBtns = document.querySelectorAll('.close-modal');
+        
+        let currentCustomerId = null;
+        
+        // Event Listeners
+        
+        // Search functionality
+        searchInput.addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase();
+            const rows = customersTable.querySelectorAll('tbody tr');
+            
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                if (text.includes(searchTerm)) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        });
+        
+        // Add Customer Button
+        addCustomerBtn.addEventListener('click', function() {
+            openAddCustomerModal();
+        });
+        
+        // Edit Customer Buttons
+        editCustomerBtns.forEach(button => {
+            button.addEventListener('click', function() {
+                const customerId = this.getAttribute('data-id');
+                openEditCustomerModal(customerId);
+            });
+        });
+        
+        // View Sales Buttons
+        viewSalesBtns.forEach(button => {
+            button.addEventListener('click', function() {
+                const customerId = this.getAttribute('data-id');
+                const customerName = this.getAttribute('data-name');
+                openCustomerSalesModal(customerId, customerName);
+            });
+        });
+        
+        // Delete Customer Buttons
+        deleteCustomerBtns.forEach(button => {
+            button.addEventListener('click', function() {
+                const customerId = this.getAttribute('data-id');
+                openDeleteCustomerModal(customerId);
+            });
+        });
+        
+        // Close Modal Buttons
+        closeModalBtns.forEach(button => {
+            button.addEventListener('click', function() {
+                closeAllModals();
+            });
+        });
+        
+        // Save Customer Button
+        saveCustomerBtn.addEventListener('click', function() {
+            if (customerForm.checkValidity()) {
+                saveCustomer();
+            } else {
+                customerForm.reportValidity();
+            }
+        });
+        
+        // Confirm Delete Button
+        confirmDeleteBtn.addEventListener('click', function() {
+            deleteCustomer();
+        });
+        
+        // Tooltip functionality
+        tooltipTriggers.forEach(trigger => {
+            trigger.addEventListener('mouseenter', function(e) {
+                const tooltipText = this.getAttribute('data-tooltip');
+                tooltip.textContent = tooltipText;
+                tooltip.classList.remove('hidden');
+                
+                // Position tooltip near the mouse
+                updateTooltipPosition(e);
+            });
+            
+            trigger.addEventListener('mouseleave', function() {
+                tooltip.classList.add('hidden');
+            });
+            
+            trigger.addEventListener('mousemove', function(e) {
+                updateTooltipPosition(e);
+            });
+        });
+        
+        // Functions
+        
+        function updateTooltipPosition(e) {
+            const x = e.clientX + 10;
+            const y = e.clientY + 10;
+            
+            tooltip.style.left = `${x}px`;
+            tooltip.style.top = `${y}px`;
+        }
+        
+        function openAddCustomerModal() {
+            currentCustomerId = null;
+            modalTitle.textContent = 'إضافة عميل جديد';
+            customerForm.reset();
+            customerId.value = '';
+            customerModal.classList.remove('hidden');
+            customerName.focus();
+        }
+        
+        function openEditCustomerModal(id) {
+            currentCustomerId = id;
+            modalTitle.textContent = 'تعديل بيانات العميل';
+            
+            // Fetch customer data
+            fetch(`/api/customers/${id}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const customer = data.customer;
+                        
+                        customerId.value = customer.id;
+                        customerName.value = customer.name;
+                        customerPhone.value = customer.phone || '';
+                        customerEmail.value = customer.email || '';
+                        customerAddress.value = customer.address || '';
+                        customerNotes.value = customer.notes || '';
+                        
+                        customerModal.classList.remove('hidden');
+                        customerName.focus();
+                    } else {
+                        showNotification(data.message, 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching customer data:', error);
+                    showNotification('حدث خطأ أثناء جلب بيانات العميل.', 'error');
+                });
+        }
+        
+        function openCustomerSalesModal(id, name) {
+            customerSalesTitle.textContent = `مبيعات العميل: ${name}`;
+            customerSalesLoading.classList.remove('hidden');
+            customerSalesContent.classList.add('hidden');
+            customerNoSales.classList.add('hidden');
+            customerSalesModal.classList.remove('hidden');
+            
+            // Fetch customer sales data
+            fetch(`/api/customers/${id}/sales`)
+                .then(response => response.json())
+                .then(data => {
+                    customerSalesLoading.classList.add('hidden');
+                    
+                    if (data.success) {
+                        if (data.sales && data.sales.length > 0) {
+                            // Display sales data
+                            document.getElementById('customer-total-sales').textContent = data.total_sales.toFixed(2) + ' $';
+                            document.getElementById('customer-sales-count').textContent = data.sales.length;
+                            document.getElementById('customer-average-sale').textContent = (data.total_sales / data.sales.length).toFixed(2) + ' $';
+                            
+                            // Fill sales table
+                            const salesTable = document.getElementById('customer-sales-table');
+                            salesTable.innerHTML = '';
+                            
+                            data.sales.forEach(sale => {
+                                const row = document.createElement('tr');
+                                row.innerHTML = `
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${sale.date}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${sale.product_name}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${sale.quantity}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${sale.unit_selling_price.toFixed(2)} $</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${sale.total_selling_price.toFixed(2)} $</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${sale.discount.toFixed(2)} $</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${sale.final_selling_price.toFixed(2)} $</td>
+                                `;
+                                salesTable.appendChild(row);
+                            });
+                            
+                            customerSalesContent.classList.remove('hidden');
+                        } else {
+                            customerNoSales.classList.remove('hidden');
+                        }
+                    } else {
+                        showNotification(data.message, 'error');
+                        closeAllModals();
+                    }
+                })
+                .catch(error => {
+                    customerSalesLoading.classList.add('hidden');
+                    console.error('Error fetching customer sales:', error);
+                    showNotification('حدث خطأ أثناء جلب بيانات مبيعات العميل.', 'error');
+                    closeAllModals();
+                });
+        }
+        
+        function openDeleteCustomerModal(id) {
+            currentCustomerId = id;
+            deleteModal.classList.remove('hidden');
+        }
+        
+        function closeAllModals() {
+            customerModal.classList.add('hidden');
+            deleteModal.classList.add('hidden');
+            customerSalesModal.classList.add('hidden');
+        }
+        
+        function saveCustomer() {
+            const customerData = {
+                name: customerName.value,
+                phone: customerPhone.value,
+                email: customerEmail.value,
+                address: customerAddress.value,
+                notes: customerNotes.value
+            };
+            
+            let url = '/api/customers';
+            let method = 'POST';
+            
+            if (currentCustomerId) {
+                url = `/api/customers/${currentCustomerId}`;
+                method = 'PUT';
+            }
+            
+            fetch(url, {
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(customerData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showNotification(data.message, 'success');
+                    closeAllModals();
+                    // Reload page to show updated data
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1000);
+                } else {
+                    showNotification(data.message, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error saving customer:', error);
+                showNotification('حدث خطأ أثناء حفظ بيانات العميل.', 'error');
+            });
+        }
+        
+        function deleteCustomer() {
+            fetch(`/api/customers/${currentCustomerId}`, {
+                method: 'DELETE'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showNotification(data.message, 'success');
+                    closeAllModals();
+                    // Reload page to show updated data
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1000);
+                } else {
+                    showNotification(data.message, 'error');
+                    closeAllModals();
+                }
+            })
+            .catch(error => {
+                console.error('Error deleting customer:', error);
+                showNotification('حدث خطأ أثناء حذف العميل.', 'error');
+                closeAllModals();
+            });
+        }
+    });
+</script>
+{% endblock %}
